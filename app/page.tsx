@@ -7,10 +7,11 @@ import { CheckCircle, ArrowRight, Lock, Trophy } from "lucide-react";
 type Plan = {
   label: string;
   id: string;   // Whop plan id
-  url?: string; // optional fallback URL
+  url?: string; // fallback URL
 };
 
 export default function BettorDaysLanding() {
+  // Detect if embedded (e.g., inside Whop)
   const [isEmbedded, setIsEmbedded] = React.useState(false);
   React.useEffect(() => {
     try {
@@ -21,6 +22,7 @@ export default function BettorDaysLanding() {
     }
   }, []);
 
+  // Load Whop checkout script once (for overlay modal)
   React.useEffect(() => {
     if (document.getElementById("whop-checkout-js")) return;
     const s = document.createElement("script");
@@ -30,13 +32,13 @@ export default function BettorDaysLanding() {
     document.body.appendChild(s);
   }, []);
 
-  // ✅ Correct plans and prices
+  // ✅ Correct plans & pricing
   const plans: Plan[] = [
     { label: "1 Month — $99.95",   id: "plan_9QvCE95RhlgEs", url: "https://whop.com/checkout/plan_9QvCE95RhlgEs?d2c=true" },
     { label: "Lifetime — $299.95", id: "plan_748wKsMkaEdw9", url: "https://whop.com/checkout/plan_748wKsMkaEdw9?d2c=true" },
   ];
 
-  const images: string[] = [];
+  const images: string[] = []; // add /hero.jpg etc. if you want
 
   const [openingPlan, setOpeningPlan] = React.useState<string | null>(null);
   const retriesRef = React.useRef(0);
@@ -66,7 +68,14 @@ export default function BettorDaysLanding() {
         setTimeout(attempt, 250);
       } else {
         setOpeningPlan(null);
-        alert("Checkout overlay couldn't load right now. Please refresh and try again.");
+        // Fallback: go straight to checkout (same tab if embedded)
+        const dest = plan.url || "#";
+        try {
+          if (isEmbedded) (window.top || window).location.href = dest;
+          else window.location.href = dest;
+        } catch {
+          window.location.href = dest;
+        }
       }
     };
 
@@ -76,6 +85,7 @@ export default function BettorDaysLanding() {
 
   return (
     <main className="relative min-h-screen text-white flex items-center justify-center p-5 sm:p-6 overflow-hidden pt-[calc(env(safe-area-inset-top)+16px)] pb-[calc(env(safe-area-inset-bottom)+24px)]">
+      {/* Background */}
       <div className="absolute inset-0 -z-10">
         {images[0] && (
           <div
@@ -86,7 +96,9 @@ export default function BettorDaysLanding() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#00190a] via-[#013d16] to-[#026920]" />
       </div>
 
+      {/* Content */}
       <section className="text-center w-full max-w-xl sm:max-w-2xl md:max-w-3xl space-y-7 sm:space-y-8">
+        {/* Badge */}
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs sm:text-sm backdrop-blur-sm">
             <Trophy className="w-4 h-4 text-[#7CFC00]" />
@@ -94,6 +106,7 @@ export default function BettorDaysLanding() {
           </div>
         </motion.div>
 
+        {/* Headline */}
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
             Bettor Days
@@ -101,6 +114,7 @@ export default function BettorDaysLanding() {
           </h1>
         </motion.div>
 
+        {/* Two CTAs */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.45 }}>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             {plans.map((plan) => (
@@ -122,6 +136,7 @@ export default function BettorDaysLanding() {
           </div>
         </motion.div>
 
+        {/* Subhead */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}>
           <p className="text-base sm:text-lg md:text-xl text-gray-100/90">
             Daily, data-backed plays with clear reasoning and real-time alerts. Join the private group and
@@ -129,6 +144,7 @@ export default function BettorDaysLanding() {
           </p>
         </motion.div>
 
+        {/* Quick benefits */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
           <ul className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3 pt-2">
             {["Daily picks", "Private Discord access", "Live line alerts"].map((t, i) => (
@@ -140,6 +156,7 @@ export default function BettorDaysLanding() {
           </ul>
         </motion.div>
 
+        {/* (Optional) image gallery */}
         {images.length > 1 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35, duration: 0.5 }}>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3 pt-4 sm:pt-6">
