@@ -6,12 +6,11 @@ import { CheckCircle, ArrowRight, Lock, Trophy } from "lucide-react";
 
 type Plan = {
   label: string;
-  url: string;       // regular URL fallback
-  embedUrl: string;  // Whop overlay URL
+  id: string;   // Whop plan id
+  url?: string; // optional fallback URL
 };
 
 export default function BettorDaysLanding() {
-  // Detect if embedded (e.g., inside Whop)
   const [isEmbedded, setIsEmbedded] = React.useState(false);
   React.useEffect(() => {
     try {
@@ -22,7 +21,6 @@ export default function BettorDaysLanding() {
     }
   }, []);
 
-  // Load Whop checkout script once (for overlay modal)
   React.useEffect(() => {
     if (document.getElementById("whop-checkout-js")) return;
     const s = document.createElement("script");
@@ -32,51 +30,52 @@ export default function BettorDaysLanding() {
     document.body.appendChild(s);
   }, []);
 
-  // Your two checkout options
+  // ✅ Correct plans and prices
   const plans: Plan[] = [
-    {
-      label: "Monthly Access",
-      url: "https://whop.com/checkout/plan_748wKsMkaEdw9?d2c=true",
-      embedUrl: "https://whop.com/checkout/plan_748wKsMkaEdw9?d2c=true",
-    },
-    {
-      label: "Season Access",
-      url: "https://whop.com/checkout/plan_9QvCE95RhlgEs?d2c=true",
-      embedUrl: "https://whop.com/checkout/plan_9QvCE95RhlgEs?d2c=true",
-    },
+    { label: "1 Month — $99.95",   id: "plan_9QvCE95RhlgEs", url: "https://whop.com/checkout/plan_9QvCE95RhlgEs?d2c=true" },
+    { label: "Lifetime — $299.95", id: "plan_748wKsMkaEdw9", url: "https://whop.com/checkout/plan_748wKsMkaEdw9?d2c=true" },
   ];
 
-  // Optional gallery images
-  const images: string[] = [
-    // "/your-hero.jpg",
-    // "/your-first-image.jpg",
-    // "/your-second-image.jpg",
-  ];
+  const images: string[] = [];
 
-  // Open Whop overlay if possible; otherwise navigate
-  const handleJoin = (plan: Plan) => (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const [openingPlan, setOpeningPlan] = React.useState<string | null>(null);
+  const retriesRef = React.useRef(0);
+
+  const tryOpenOverlay = (plan: Plan): boolean => {
     const whop: any = (window as any).WhopCheckout;
-
     if (whop && typeof whop.open === "function") {
       try {
-        whop.open({ url: plan.embedUrl });
-        return;
+        whop.open({ plan: plan.id });
+        return true;
       } catch {}
     }
+    return false;
+  };
 
-    // Fallback: navigate (inside Whop = same tab; outside = new tab)
-    try {
-      if (isEmbedded) (window.top || window).location.href = plan.url;
-      else window.open(plan.url, "_blank", "noopener");
-    } catch {
-      window.location.href = plan.url;
-    }
+  const handleJoin = (plan: Plan) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setOpeningPlan(plan.id);
+
+    const attempt = () => {
+      if (tryOpenOverlay(plan)) {
+        setOpeningPlan(null);
+        return;
+      }
+      if (retriesRef.current < 8) {
+        retriesRef.current += 1;
+        setTimeout(attempt, 250);
+      } else {
+        setOpeningPlan(null);
+        alert("Checkout overlay couldn't load right now. Please refresh and try again.");
+      }
+    };
+
+    retriesRef.current = 0;
+    attempt();
   };
 
   return (
     <main className="relative min-h-screen text-white flex items-center justify-center p-5 sm:p-6 overflow-hidden pt-[calc(env(safe-area-inset-top)+16px)] pb-[calc(env(safe-area-inset-bottom)+24px)]">
-      {/* Background */}
       <div className="absolute inset-0 -z-10">
         {images[0] && (
           <div
@@ -87,9 +86,7 @@ export default function BettorDaysLanding() {
         <div className="absolute inset-0 bg-gradient-to-br from-[#00190a] via-[#013d16] to-[#026920]" />
       </div>
 
-      {/* Content */}
       <section className="text-center w-full max-w-xl sm:max-w-2xl md:max-w-3xl space-y-7 sm:space-y-8">
-        {/* Badge */}
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs sm:text-sm backdrop-blur-sm">
             <Trophy className="w-4 h-4 text-[#7CFC00]" />
@@ -97,7 +94,6 @@ export default function BettorDaysLanding() {
           </div>
         </motion.div>
 
-        {/* Headline */}
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
             Bettor Days
@@ -105,19 +101,18 @@ export default function BettorDaysLanding() {
           </h1>
         </motion.div>
 
-        {/* Dual CTAs */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.45 }}>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             {plans.map((plan) => (
               <a
-                key={plan.label}
-                href={plan.url}
+                key={plan.id}
+                href={plan.url || "#"}
                 onClick={handleJoin(plan)}
                 aria-label={`Gain access to Bettor Days — ${plan.label}`}
                 title={`Gain access to Bettor Days — ${plan.label}`}
-                className="inline-flex h-14 px-6 sm:px-8 items-center justify-center rounded-3xl text-lg sm:text-xl font-extrabold bg-[#7CFC00] text-black hover:bg-[#66dd00] shadow-[0_10px_30px_rgba(124,252,0,0.35)] ring-4 ring-[#7CFC00]/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7CFC00]/60 active:scale-[.99]"
+                className={`inline-flex h-14 px-6 sm:px-8 items-center justify-center rounded-3xl text-lg sm:text-xl font-extrabold bg-[#7CFC00] text-black hover:bg-[#66dd00] shadow-[0_10px_30px_rgba(124,252,0,0.35)] ring-4 ring-[#7CFC00]/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7CFC00]/60 active:scale-[.99] ${openingPlan === plan.id ? "opacity-70 pointer-events-none" : ""}`}
               >
-                {plan.label} <ArrowRight className="ml-2" />
+                {openingPlan === plan.id ? "Opening checkout…" : plan.label} <ArrowRight className="ml-2" />
               </a>
             ))}
           </div>
@@ -127,14 +122,13 @@ export default function BettorDaysLanding() {
           </div>
         </motion.div>
 
-        {/* Subhead */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}>
           <p className="text-base sm:text-lg md:text-xl text-gray-100/90">
-            Daily, data-backed plays with clear reasoning and real-time alerts. Join the private group and start placing sharper tickets today.
+            Daily, data-backed plays with clear reasoning and real-time alerts. Join the private group and
+            start placing sharper tickets today.
           </p>
         </motion.div>
 
-        {/* Quick benefits */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
           <ul className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3 pt-2">
             {["Daily picks", "Private Discord access", "Live line alerts"].map((t, i) => (
@@ -146,7 +140,6 @@ export default function BettorDaysLanding() {
           </ul>
         </motion.div>
 
-        {/* Image gallery (optional) */}
         {images.length > 1 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35, duration: 0.5 }}>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3 pt-4 sm:pt-6">
