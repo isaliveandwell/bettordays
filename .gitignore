@@ -4,3 +4,6 @@ out
 .DS_Store
 .env*
 .vercel
+
+app/*.backup*.tsx
+app/page.before-*.tsx
