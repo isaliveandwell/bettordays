@@ -5,8 +5,21 @@ import { motion } from "framer-motion";
 import { CheckCircle, ArrowRight, Lock, Trophy } from "lucide-react";
 
 export default function BettorDaysLanding() {
+  // Detect if the page is embedded (e.g., inside Whop)
+  const [isEmbedded, setIsEmbedded] = React.useState(false);
+  React.useEffect(() => {
+    try {
+      const ref = document.referrer || "";
+      setIsEmbedded(window.top !== window.self || ref.includes("whop.com"));
+    } catch {
+      setIsEmbedded(true);
+    }
+  }, []);
+
+  // Whop checkout URL
+  const whopUrl = "https://whop.com/rakko-was-board";
+
   // 👉 Add your image URLs below. If empty, the gallery stays hidden.
-  // images[0] will be used as a subtle hero background overlay if provided.
   const images: string[] = [
     // "/your-hero.jpg",
     // "/your-first-image.jpg",
@@ -48,9 +61,19 @@ export default function BettorDaysLanding() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.45 }}>
           <div className="flex flex-col items-center gap-3">
             <a
-              href="https://whop.com/rakko-was-board"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={whopUrl}
+              target={isEmbedded ? "_top" : "_blank"}
+              rel={isEmbedded ? undefined : "noopener noreferrer"}
+              onClick={(e) => {
+                if (isEmbedded) {
+                  e.preventDefault();
+                  try {
+                    (window.top || window).location.href = whopUrl;
+                  } catch {
+                    window.location.href = whopUrl;
+                  }
+                }
+              }}
               aria-label="Gain access to Bettor Days on Whop"
               title="Gain access to Bettor Days"
               className="inline-flex h-14 px-10 items-center justify-center rounded-3xl text-xl font-extrabold bg-[#7CFC00] text-black hover:bg-[#66dd00] shadow-[0_10px_30px_rgba(124,252,0,0.35)] ring-4 ring-[#7CFC00]/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7CFC00]/60 active:scale-[.99]"
