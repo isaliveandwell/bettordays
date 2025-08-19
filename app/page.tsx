@@ -4,8 +4,14 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, ArrowRight, Lock, Trophy } from "lucide-react";
 
+type Plan = {
+  label: string;
+  url: string;       // regular URL fallback
+  embedUrl: string;  // Whop overlay URL
+};
+
 export default function BettorDaysLanding() {
-  // Detect if we're inside Whop (embed)
+  // Detect if embedded (e.g., inside Whop)
   const [isEmbedded, setIsEmbedded] = React.useState(false);
   React.useEffect(() => {
     try {
@@ -16,44 +22,55 @@ export default function BettorDaysLanding() {
     }
   }, []);
 
-  // 1) Load Whop checkout script (for overlay modal)
+  // Load Whop checkout script once (for overlay modal)
   React.useEffect(() => {
     if (document.getElementById("whop-checkout-js")) return;
     const s = document.createElement("script");
-    s.src = "https://cdn.whop.com/js/checkout.js"; // Whop checkout script
+    s.src = "https://cdn.whop.com/js/checkout.js";
     s.async = true;
     s.id = "whop-checkout-js";
     document.body.appendChild(s);
   }, []);
 
-  // 2) Your Whop checkout link (update if Whop gives you a specific embed link/id)
-  const whopPageUrl = "https://whop.com/rakko-was-board";
-  const WHOP_CHECKOUT_LINK = whopPageUrl; // replace with embed link from Whop if provided
+  // Your two checkout options
+  const plans: Plan[] = [
+    {
+      label: "Monthly Access",
+      url: "https://whop.com/checkout/plan_748wKsMkaEdw9?d2c=true",
+      embedUrl: "https://whop.com/checkout/plan_748wKsMkaEdw9?d2c=true",
+    },
+    {
+      label: "Season Access",
+      url: "https://whop.com/checkout/plan_9QvCE95RhlgEs?d2c=true",
+      embedUrl: "https://whop.com/checkout/plan_9QvCE95RhlgEs?d2c=true",
+    },
+  ];
 
-  // 👉 Add image URLs if you want a gallery
+  // Optional gallery images
   const images: string[] = [
     // "/your-hero.jpg",
     // "/your-first-image.jpg",
     // "/your-second-image.jpg",
   ];
 
-  // Open Whop checkout overlay (fallback: navigate)
-  const handleJoin = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  // Open Whop overlay if possible; otherwise navigate
+  const handleJoin = (plan: Plan) => (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    const anyWin = window as any;
-    const whop = anyWin.WhopCheckout;
+    const whop: any = (window as any).WhopCheckout;
+
     if (whop && typeof whop.open === "function") {
       try {
-        whop.open({ url: WHOP_CHECKOUT_LINK }); // try overlay modal
+        whop.open({ url: plan.embedUrl });
         return;
       } catch {}
     }
-    // Fallbacks: stay in embed if possible, otherwise same-tab
+
+    // Fallback: navigate (inside Whop = same tab; outside = new tab)
     try {
-      if (isEmbedded) (window.top || window).location.href = whopPageUrl;
-      else window.location.href = whopPageUrl;
+      if (isEmbedded) (window.top || window).location.href = plan.url;
+      else window.open(plan.url, "_blank", "noopener");
     } catch {
-      window.location.href = whopPageUrl;
+      window.location.href = plan.url;
     }
   };
 
@@ -88,22 +105,25 @@ export default function BettorDaysLanding() {
           </h1>
         </motion.div>
 
-        {/* CENTERED CTA */}
+        {/* Dual CTAs */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.45 }}>
-          <div className="flex flex-col items-center gap-3">
-            <a
-              href={whopPageUrl}
-              onClick={handleJoin}
-              aria-label="Gain access to Bettor Days on Whop"
-              title="Gain access to Bettor Days"
-              className="inline-flex h-14 px-10 items-center justify-center rounded-3xl text-xl font-extrabold bg-[#7CFC00] text-black hover:bg-[#66dd00] shadow-[0_10px_30px_rgba(124,252,0,0.35)] ring-4 ring-[#7CFC00]/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7CFC00]/60 active:scale-[.99]"
-            >
-              Gain access to Bettor Days <ArrowRight className="ml-2" />
-            </a>
-            <div className="flex items-center gap-2 text-sm text-gray-300">
-              <Lock className="w-4 h-4" />
-              <span>Secure Whop checkout</span>
-            </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+            {plans.map((plan) => (
+              <a
+                key={plan.label}
+                href={plan.url}
+                onClick={handleJoin(plan)}
+                aria-label={`Gain access to Bettor Days — ${plan.label}`}
+                title={`Gain access to Bettor Days — ${plan.label}`}
+                className="inline-flex h-14 px-6 sm:px-8 items-center justify-center rounded-3xl text-lg sm:text-xl font-extrabold bg-[#7CFC00] text-black hover:bg-[#66dd00] shadow-[0_10px_30px_rgba(124,252,0,0.35)] ring-4 ring-[#7CFC00]/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#7CFC00]/60 active:scale-[.99]"
+              >
+                {plan.label} <ArrowRight className="ml-2" />
+              </a>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center justify-center gap-2 text-sm text-gray-300">
+            <Lock className="w-4 h-4" />
+            <span>Secure Whop checkout</span>
           </div>
         </motion.div>
 
